@@ -1,0 +1,67 @@
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="31.967"
+      height="32.967"
+      viewBox="0 0 31.967 32.967"
+    >
+      <g id="wallet" transform="translate(0 1)">
+        <path
+          id="Path_4434"
+          data-name="Path 4434"
+          d="M45.709,4.907,58.94.091A1.513,1.513,0,0,1,60.881,1l3.172,8.816H45.893L44.806,6.85A1.513,1.513,0,0,1,45.709,4.907Z"
+          transform="translate(-41.921 -1)"
+          fill="#ff5857"
+        />
+        <path
+          id="Path_4435"
+          data-name="Path 4435"
+          d="M175.179,1a1.513,1.513,0,0,0-1.942-.91L166.622,2.5l2.663,7.318h9.065Z"
+          transform="translate(-156.219 -1)"
+          fill="#fe1b5c"
+        />
+        <path
+          id="Path_4436"
+          data-name="Path 4436"
+          d="M225.908,69.982H215.164a1.249,1.249,0,0,0-1.249,1.249v4.2h13.242v-4.2A1.249,1.249,0,0,0,225.908,69.982Z"
+          transform="translate(-200.559 -66.613)"
+          fill="#57c67f"
+        />
+        <path
+          id="Path_4437"
+          data-name="Path 4437"
+          d="M326.578,71.231a1.249,1.249,0,0,0-1.249-1.249h-5.372V75.43h6.621Z"
+          transform="translate(-299.98 -66.613)"
+          fill="#43a071"
+        />
+        <path
+          id="Path_4438"
+          data-name="Path 4438"
+          d="M27.6,130a2.5,2.5,0,0,1,2.5,2.5v18.855a2.5,2.5,0,0,1-2.5,2.5H2.5a2.5,2.5,0,0,1-2.5-2.5V132.5A2.5,2.5,0,0,1,2.5,130Z"
+          transform="translate(0 -121.884)"
+          fill="#3555a2"
+        />
+        <path
+          id="Path_4439"
+          data-name="Path 4439"
+          d="M253.549,130H241v23.85h12.549a2.5,2.5,0,0,0,2.5-2.5V132.5A2.5,2.5,0,0,0,253.549,130Z"
+          transform="translate(-225.953 -121.884)"
+          fill="#1b3555"
+        />
+        <path
+          id="Path_4440"
+          data-name="Path 4440"
+          d="M355.746,268.492h4.995a1.249,1.249,0,0,0,1.249-1.249v-4.995A1.249,1.249,0,0,0,360.741,261h-4.995a3.746,3.746,0,1,0,0,7.492Z"
+          transform="translate(-330.023 -244.705)"
+          fill="#3555a2"
+        />
+        <circle
+          id="Ellipse_160"
+          data-name="Ellipse 160"
+          cx="0.5"
+          cy="0.5"
+          r="0.5"
+          transform="translate(25 19)"
+          fill="#d6e8fe"
+        />
+      </g>
+    </svg>
