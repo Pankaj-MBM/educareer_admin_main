@@ -1,35 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'controllers/MenuAppController.dart';
-import 'utils/main_screen.dart';
-import 'utils/ui_color_code.dart';
+import 'package:flutteradmin/pages/indexpage.dart';
+import 'package:flutteradmin/pages/logins/main_login.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Job Educations',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: AppColors.bgColor,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme)
-            .apply(bodyColor: Colors.white),
-        canvasColor: AppColors.secondaryColor,
-      ),
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(
-            create: (context) => MenuAppController(),
-          ),
-        ],
-        child: MainScreen(),
-      ),
+      home: MainLogin(),
+      // home: IndexPage(), // Set IndexPage as the home page
     );
   }
 }

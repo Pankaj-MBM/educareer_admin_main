@@ -1,4 +1,4 @@
-# student
+# flutteradmin
 
 A new Flutter project.
 

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "482971336669",
+    "project_id": "edu-career-firebase-8c859",
+    "storage_bucket": "edu-career-firebase-8c859.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482971336669:android:10cc576b7b9df72943c034",
+        "android_client_info": {
+          "package_name": "com.example.edu_vacancy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdZFOEW5lz8mwNVhmBP0ER4XqmosEaGTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482971336669:android:70ab69809192013543c034",
+        "android_client_info": {
+          "package_name": "com.example.flutteradmin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdZFOEW5lz8mwNVhmBP0ER4XqmosEaGTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

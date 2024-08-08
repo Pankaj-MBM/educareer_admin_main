@@ -1,6 +1,6 @@
 {
-    "name": "student",
-    "short_name": "student",
+    "name": "flutteradmin",
+    "short_name": "flutteradmin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
