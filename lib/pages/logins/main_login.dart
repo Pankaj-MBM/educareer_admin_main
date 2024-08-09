@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-
-import '../indexpage.dart'; // For input formatters
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../indexpage.dart'; // Make sure this import is correct
+import '../profile.dart'; // Import ProfilePage if needed
 
 class MainLogin extends StatefulWidget {
   const MainLogin({super.key});
@@ -15,11 +16,66 @@ class MainLogin extends StatefulWidget {
 class _MainLoginState extends State<MainLogin> {
   bool _isOtpLogin = false;
   final errorController = StreamController<ErrorAnimationType>.broadcast();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _otpController = TextEditingController();
 
   @override
   void dispose() {
     errorController.close();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _mobileController.dispose();
+    _otpController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loginWithEmailPassword() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    try {
+      // Check user credentials in Firestore
+      final usersCollection = FirebaseFirestore.instance.collection('educareer-admin');
+      final query = await usersCollection
+          .where('username', isEqualTo: email)
+          .where('password', isEqualTo: password)
+          .get();
+      if (query.docs.isNotEmpty) {
+        // Successful login
+        final userDocument = query.docs.first;
+        final userData = userDocument.data();
+        _showErrorSnackbar('Login Success..!', Colors.green);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => IndexPage(userData: userData),
+          ),
+        );
+      } else {
+        // Invalid credentials
+        print('Invalid username or password');
+        _showErrorSnackbar('Invalid username or password', Colors.red);
+      }
+    } catch (e) {
+      print('Error occurred: $e');
+      _showErrorSnackbar('An error occurred. Please try again.', Colors.red);
+    }
+  }
+
+  Future<void> _loginWithOtp() async {
+    // Add OTP login logic here
+  }
+
+  void _showErrorSnackbar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
@@ -83,6 +139,8 @@ class _MainLoginState extends State<MainLogin> {
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
+                                  key: ValueKey('mobile-field'), // Unique Key for mobile
+                                  controller: _mobileController,
                                   decoration: const InputDecoration(
                                     labelText: "Mobile Number",
                                     hintText: "Enter Mobile Number",
@@ -111,6 +169,8 @@ class _MainLoginState extends State<MainLogin> {
                               ],
                             ),
                             PinCodeTextField(
+                              key: ValueKey('otp-field'), // Unique Key for OTP
+                              controller: _otpController,
                               length: 6,
                               obscureText: false,
                               keyboardType: TextInputType.number,
@@ -124,39 +184,31 @@ class _MainLoginState extends State<MainLogin> {
                               appContext: context,
                             )
                           ] else ...[
-                            const MyTextFormField(
+                            MyTextFormField(
+                              key: ValueKey('email-field'), // Unique Key for email
+                              controller: _emailController,
                               text: "Email",
                               hintText: "Enter your email",
                               prefixIcon: Icons.email_outlined,
                             ),
-                            const MyTextFormField(
+                            MyTextFormField(
+                              key: ValueKey('password-field'), // Unique Key for password
+                              controller: _passwordController,
                               text: "Password",
                               hintText: "Enter your password",
                               prefixIcon: Icons.lock,
                               obscureText: true,
                             ),
                           ],
-
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(double.infinity, 50),
                             ),
                             onPressed: () {
                               if (_isOtpLogin) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => IndexPage(),
-                                  ),
-                                );
+                                _loginWithOtp();
                               } else {
-                                // Handle email/password login
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => IndexPage(),
-                                  ),
-                                );
+                                _loginWithEmailPassword();
                               }
                             },
                             child: Text(
@@ -167,39 +219,18 @@ class _MainLoginState extends State<MainLogin> {
                           const Divider(
                             color: Colors.black,
                           ),
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.center,
-                          //   children: [
-                          //     const Text("Don't have an account?"),
-                          //     SizedBox(width: 10),
-                          //     TextButton(
-                          //       onPressed: () {
-                          //         Navigator.push(
-                          //           context,
-                          //           MaterialPageRoute(
-                          //             builder: (context) =>
-                          //             const RegisterView(),
-                          //           ),
-                          //         );
-                          //       },
-                          //       child: const Text("Register"),
-                          //     ),
-                          //   ],
-                          // ),
                           TextButton(
                             onPressed: () {
                               setState(() {
-
                                 _isOtpLogin = !_isOtpLogin;
                               });
                             },
                             child: Text(
                               _isOtpLogin
-                                  ? "Login with Email/Password": "Login with OTP",
+                                  ? "Login with Email/Password" : "Login with OTP",
                               style: const TextStyle(
                                 color: Colors.blue,
                                 fontWeight: FontWeight.bold,
-
                               ),
                             ),
                           ),
@@ -217,23 +248,27 @@ class _MainLoginState extends State<MainLogin> {
   }
 }
 
-// Placeholder widget for MyTextFormField
 class MyTextFormField extends StatelessWidget {
   final String text;
   final String hintText;
   final IconData prefixIcon;
   final bool obscureText;
+  final TextEditingController controller;
 
   const MyTextFormField({
+    required Key key,
     required this.text,
     required this.hintText,
     required this.prefixIcon,
     this.obscureText = false,
-  });
+    required this.controller,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: key,
+      controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
         labelText: text,
@@ -244,5 +279,3 @@ class MyTextFormField extends StatelessWidget {
     );
   }
 }
-// Placeholder widget for RegisterView
-

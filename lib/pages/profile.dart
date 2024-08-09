@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final Map<String, dynamic> userData;
+
+  const ProfilePage({super.key, required this.userData});
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +68,7 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 20),
                   // Profile Name
                   Text(
-                    'Rohit Rao', // Replace with user's name
+                    userData['name'] ?? 'Name not available', // Display user's name
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -75,7 +77,7 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 10),
                   // Email
                   Text(
-                    '123@example.com', // Replace with user's email
+                    userData['email'] ?? 'Email not available', // Display user's email
                     style: const TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -85,11 +87,11 @@ class ProfilePage extends StatelessWidget {
                   // Additional Info
                   InfoCard(
                     title: 'Phone Number',
-                    value: '+91 7568862848', // Replace with user's phone number
+                    value: userData['mobile'] ?? 'Phone number not available', // Display user's phone number
                   ),
                   InfoCard(
                     title: 'Address',
-                    value: '1234 Jodhpur, Rajasthan', // Replace with user's address
+                    value: userData['address'] ?? 'Address not available', // Replace with user's address
                   ),
                 ],
               ),

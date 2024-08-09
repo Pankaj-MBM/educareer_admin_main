@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Companies.dart';
+import 'DB_config_pages/logout.dart';
 import 'Student list.dart';
 import 'UnderWorking.dart';
 import 'add_new_job.dart';
@@ -12,7 +13,8 @@ import 'profile-Setting.dart';
 import 'profile.dart';
 
 class IndexPage extends StatefulWidget {
-  const IndexPage({super.key});
+  final Map<String, dynamic> userData;
+  const IndexPage({super.key, required this.userData});
 
   @override
   _IndexPageState createState() => _IndexPageState();
@@ -28,14 +30,20 @@ class _IndexPageState extends State<IndexPage> {
     });
   }
 
-  void _updatePage(Widget page) {
+  void _updatePage(Widget page, {Map<String, dynamic>? userData}) {
     setState(() {
-      _currentPage = page;
+      if (page is ProfilePage && userData != null) {
+        _currentPage = ProfilePage(userData: userData);
+      } else {
+        _currentPage = page;
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final String userName = widget.userData['name'] ?? 'User'; // Default to 'User' if name is not available
+
     return Scaffold(
       appBar: AppBar(
         title: RichText(
@@ -53,7 +61,7 @@ class _IndexPageState extends State<IndexPage> {
                 text: 'Career',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.blue, // Color for career
+                  color: Colors.blue, // Color for Career
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -71,7 +79,7 @@ class _IndexPageState extends State<IndexPage> {
             icon: const Icon(Icons.light_mode_outlined),
             color: Colors.white,
             onPressed: () {
-              // Handle notifications
+              // Handle theme toggle
             },
           ),
           IconButton(
@@ -110,8 +118,8 @@ class _IndexPageState extends State<IndexPage> {
                         backgroundColor: Colors.transparent,
                       ),
                     ),
-                    const Text(
-                      'Rohit Rao',
+                    Text(
+                      userName, // Display dynamic user name
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 18,
@@ -125,13 +133,15 @@ class _IndexPageState extends State<IndexPage> {
                       onSelected: (value) {
                         switch (value) {
                           case 1:
-                            _updatePage(const ProfilePage());
+                            _updatePage(ProfilePage(userData: widget.userData)); // Pass userData here
                             break;
                           case 2:
                             _updatePage(ProfileSetting());
                             break;
                           case 3:
-                            print("Logout selected");
+                            setState(() {
+                              logout(context);
+                            });
                             break;
                         }
                       },
@@ -163,6 +173,7 @@ class _IndexPageState extends State<IndexPage> {
             isOpen: _isDrawerOpen,
             toggleDrawer: _toggleDrawer,
             onPageSelected: _updatePage,
+            userName: userName, // Pass the dynamic user name to the drawer
           ),
           Expanded(
             child: _currentPage,
@@ -177,12 +188,14 @@ class CustomDrawer extends StatelessWidget {
   final bool isOpen;
   final VoidCallback toggleDrawer;
   final void Function(Widget) onPageSelected; // Callback for page selection
+  final String userName; // Add a field for user name
 
   const CustomDrawer({
     super.key,
     required this.isOpen,
     required this.toggleDrawer,
     required this.onPageSelected, // Initialize the callback
+    required this.userName, // Initialize the user name
   });
 
   @override
@@ -209,18 +222,18 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   if (isOpen) ...[
                     const SizedBox(width: 8),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Rohit Rao',
-                          style: TextStyle(
+                          userName, // Display dynamic user name
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
                           ),
                         ),
-                        Text(
+                        const Text(
                           'Online',
                           style: TextStyle(
                             color: Colors.green,
@@ -241,8 +254,8 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          _buildListTile(
-              Icons.dashboard, 'Dashboard', context, Colors.purple, const HomePage()),
+          _buildListTile(Icons.dashboard, 'Dashboard', context, Colors.purple,
+              const HomePage()),
           _buildJobsExpansionTile(context),
           _buildListTile(Icons.apps_outage_sharp, 'Companies', context, Colors.cyan,
               const CompaniePage()),
