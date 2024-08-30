@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddNewJobPortal extends StatefulWidget {
-  AddNewJobPortal({super.key});
+  const AddNewJobPortal({super.key});
 
   @override
   _AddNewJobPortalState createState() => _AddNewJobPortalState();
@@ -18,15 +17,52 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _salaryRangeController = TextEditingController();
 
-  String _selectedJobCategory = 'React';
+  String? _selectedJobCategory;
   String _selectedJobPosition = 'Senior';
   String _selectedQualification = 'Graduate';
   String _selectedExperience = '1 year';
   String _selectedJobType = 'Remote Job';
 
   bool _agreedToTerms = false;
-  bool _isFileUploaded = false;
-  File? _uploadedImage;
+  bool _isLoading = true;
+  List<String> _jobCategories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchJobCategories();
+  }
+
+  Future<void> _fetchJobCategories() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('job-category').get();
+      List<String> jobCategories = snapshot.docs
+          .where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data.containsKey('job_title');
+      })
+          .map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['job_title'] as String;
+      })
+          .toList();
+
+      if (jobCategories.isEmpty) {
+        throw Exception('No valid job categories found');
+      }
+
+      setState(() {
+        _jobCategories = jobCategories;
+        _selectedJobCategory = _jobCategories.isNotEmpty ? _jobCategories[0] : null; // Default to the first category if available
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching job categories: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +71,7 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: SizedBox(
-            width:800,
+            width: 800,
             child: Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -51,27 +87,29 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Center(child: Text("Create New Job",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),)),
-                          SizedBox(height: 15,),
+                          Center(
+                            child: Text(
+                              "Create New Job",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          SizedBox(height: 15),
                           // Company Name
                           _buildTextFormField(
                             controller: _companyNameController,
                             label: 'Company Name',
                           ),
-
                           // Job Title
                           _buildTextFormField(
                             controller: _jobTitleController,
                             label: 'Job Title',
                           ),
-
                           // Job Description
                           _buildTextFormField(
                             controller: _jobDescriptionController,
                             label: 'Job Description',
                             maxLines: 3,
                           ),
-
                           // Select Job Category
                           const SizedBox(height: 16),
                           const Text(
@@ -81,29 +119,22 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                               fontSize: 16,
                             ),
                           ),
-                          _buildDropdownButton(
+                          _isLoading
+                              ? Center(child: CircularProgressIndicator())
+                              : _buildDropdownButton(
                             value: _selectedJobCategory,
-                            items: [
-                              'React',
-                              'Flutter',
-                              'Angular',
-                              'ASP.NET Web API',
-                              'Node.js',
-                              'MERN'
-                            ],
+                            items: _jobCategories,
                             onChanged: (newValue) {
                               setState(() {
-                                _selectedJobCategory = newValue!;
+                                _selectedJobCategory = newValue;
                               });
                             },
                           ),
-
                           // Location
                           _buildTextFormField(
                             controller: _locationController,
                             label: 'Location',
                           ),
-
                           // Salary Range
                           _buildTextFormField(
                             controller: _salaryRangeController,
@@ -111,7 +142,6 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                             prefixText: '\$ ',
                             keyboardType: TextInputType.number,
                           ),
-
                           // Select Job Position
                           const SizedBox(height: 16),
                           const Text(
@@ -130,7 +160,6 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                               });
                             },
                           ),
-
                           // Minimum Qualification
                           const SizedBox(height: 16),
                           const Text(
@@ -149,7 +178,6 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                               });
                             },
                           ),
-
                           // Minimum Experience
                           const SizedBox(height: 16),
                           const Text(
@@ -168,7 +196,6 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                               });
                             },
                           ),
-
                           // Select Job Type
                           const SizedBox(height: 16),
                           const Text(
@@ -187,66 +214,6 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                               });
                             },
                           ),
-
-                          // Company Logo
-                          const SizedBox(height: 16),
-                          Center(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepOrangeAccent,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  // Handle file selection
-                                  FilePickerResult? result =
-                                  await FilePicker.platform.pickFiles(
-                                    type: FileType.image,
-                                  );
-
-                                  if (result != null) {
-                                    setState(() {
-                                      _isFileUploaded = true;
-                                      _uploadedImage = File(result.files.single.path!);
-                                    });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'File selected: ${result.files.single.name}',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: const Text(
-                                  'Upload Company Logo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Display Uploaded Image
-                          if (_uploadedImage != null) ...[
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Image.file(
-                                _uploadedImage!,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ],
-
                           // Agree to terms
                           const SizedBox(height: 16),
                           Row(
@@ -259,48 +226,28 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
                                   });
                                 },
                               ),
-                              const Expanded(
-                                child: Text(
-                                  'I agree to the terms and conditions',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                  ),
-                                ),
+                              const Text(
+                                'I agree to the terms and conditions',
+                                style: TextStyle(fontSize: 16),
                               ),
                             ],
                           ),
-
                           // Submit Button
                           const SizedBox(height: 16),
                           Center(
                             child: ElevatedButton(
+                              onPressed: _agreedToTerms ? _handleSubmit : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF263238),
+                                backgroundColor: Colors.deepOrangeAccent,
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 48,
-                                  vertical: 16,
+                                  horizontal: 24,
+                                  vertical: 12,
                                 ),
                               ),
-                              onPressed: () {
-                                if (_formKey.currentState!.validate() &&
-                                    _agreedToTerms) {
-                                  // Submit the form
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Form submitted')),
-                                  );
-                                } else if (!_agreedToTerms) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'You must agree to the terms and conditions',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
                               child: const Text(
                                 'Submit',
                                 style: TextStyle(
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -322,46 +269,26 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
   Widget _buildTextFormField({
     required TextEditingController controller,
     required String label,
+    int? maxLines,
     String? prefixText,
     TextInputType? keyboardType,
-    int maxLines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
           prefixText: prefixText,
-          filled: true,
-          fillColor: Colors.grey[100],
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 2,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
-        keyboardType: keyboardType,
-        maxLines: maxLines,
         validator: (value) {
           if (value == null || value.isEmpty) {
-            return 'Please enter ${label.toLowerCase()}';
+            return 'Please enter $label';
           }
           return null;
         },
@@ -369,48 +296,71 @@ class _AddNewJobPortalState extends State<AddNewJobPortal> {
     );
   }
 
-  Widget _buildDropdownButton({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
+  Widget _buildDropdownButton<T>({
+    required T? value,
+    required List<T> items,
+    required void Function(T?) onChanged,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.grey[100],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 2,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.black,
-              width: 1,
-            ),
-          ),
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(item.toString()),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
+      validator: (value) {
+        if (value == null) {
+          return 'Please select an option';
+        }
+        return null;
+      },
     );
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      try {
+        await FirebaseFirestore.instance.collection('add_new_job').add({
+          'company_name': _companyNameController.text,
+          'job_title': _jobTitleController.text,
+          'job_description': _jobDescriptionController.text,
+          'job_category': _selectedJobCategory,
+          'location': _locationController.text,
+          'salary_range': _salaryRangeController.text,
+          'job_position': _selectedJobPosition,
+          'qualification': _selectedQualification,
+          'experience': _selectedExperience,
+          'job_type': _selectedJobType,
+          'posted_at': Timestamp.now(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Job added successfully!'),
+          ),
+        );
+        _companyNameController.clear();
+        _jobTitleController.clear();
+        _jobDescriptionController.clear();
+        _locationController.clear();
+        _salaryRangeController.clear();
+
+      } catch (e) {
+        print('Error adding job: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add job.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
