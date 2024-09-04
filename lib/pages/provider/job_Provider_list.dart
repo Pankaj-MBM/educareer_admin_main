@@ -10,30 +10,39 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: JobSeekerList(),
+      home: JobProviderList(),
+      navigatorKey: navigatorKey,
     );
   }
 }
 
-class JobSeekerList extends StatefulWidget {
-  const JobSeekerList({super.key});
+class JobProviderList extends StatefulWidget {
+  const JobProviderList({super.key});
 
   @override
-  _JobSeekerListState createState() => _JobSeekerListState();
+  _JobProviderListState createState() => _JobProviderListState();
 }
 
-class _JobSeekerListState extends State<JobSeekerList> {
-  final MyData _myData = MyData();
+class _JobProviderListState extends State<JobProviderList> {
+  late MyData _myData;
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _myData = MyData(context);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Job Seeker List'),
+        title: const Text('Job Providers List'),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -62,15 +71,12 @@ class _JobSeekerListState extends State<JobSeekerList> {
           source: _myData,
           columns: const [
             DataColumn(label: Text('No')),
-            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('First Name')),
+            DataColumn(label: Text('Middle Name')),
+            DataColumn(label: Text('Last Name')),
             DataColumn(label: Text('Mobile No')),
-            DataColumn(label: Text('Gender')),
             DataColumn(label: Text('Email')),
-            DataColumn(label: Text('Age'), numeric: true),
-            DataColumn(label: Text('DOB')),
-            DataColumn(label: Text('Password')),
-            DataColumn(label: Text('Address')),
-            DataColumn(label: Text('Actions')),  // Add Actions Column
+            DataColumn(label: Text('Actions')),
           ],
           columnSpacing: 12,
           horizontalMargin: 12,
@@ -89,28 +95,30 @@ class _JobSeekerListState extends State<JobSeekerList> {
 }
 
 class MyData extends DataTableSource {
+  final BuildContext context; // Store the context passed from the widget
   List<Map<String, dynamic>> data = [];
   List<Map<String, dynamic>> filteredData = [];
 
-  MyData() {
+  MyData(this.context) {
     fetchData();
   }
 
   Future<void> fetchData() async {
-    QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('job_seekers').get();
+    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('job_providers').get();
 
     data = snapshot.docs.map((doc) {
       return {
-        'name': doc['name'] ?? '',
-        'mobNo': doc['mobNo'] ?? '',
-        'gender': doc['gender'] ?? '',
-        'email': doc['email'] ?? '',
-        'age': doc['age'] ?? '',
-        'dob': doc['dob'] ?? '',
-        'password': doc['password'] ?? '',
-        'address': doc['address'] ?? '',
-        'id': doc.id,  // Save document ID for reference
+        'firstName': doc['firstName'] ?? 'N/A',
+        'middleName': doc['middleName'] ?? 'N/A',
+        'lastName': doc['lastName'] ?? 'N/A',
+        'title': doc['title'] ?? 'N/A', // Ensure this field exists
+        'mobNo': doc['mobNo'] ?? 'N/A',
+        'email': doc['email'] ?? 'N/A',
+        'dob': doc['dob'] ?? 'N/A', // Ensure this field exists
+        'age': doc['age'] ?? 'N/A', // Ensure this field exists
+        'address': doc['address'] ?? 'N/A', // Ensure this field exists
+        'password': doc['password'] ?? 'N/A', // Ensure this field exists
+        'id': doc.id, // Save document ID for reference
       };
     }).toList();
 
@@ -123,8 +131,8 @@ class MyData extends DataTableSource {
       filteredData = List.from(data);
     } else {
       filteredData = data
-          .where((row) => row.values
-          .any((value) => value.toString().contains(query)))
+          .where((row) => row.values.any(
+              (value) => value.toString().toLowerCase().contains(query.toLowerCase())))
           .toList();
     }
     notifyListeners();
@@ -134,52 +142,96 @@ class MyData extends DataTableSource {
   DataRow? getRow(int index) {
     final row = filteredData[index];
     return DataRow(cells: [
-      DataCell(Text((index + 1).toString())),  // Sequential number
-      DataCell(Text(row['name'])),
-      DataCell(Text(row['mobNo'])),
-      DataCell(Text(row['gender'])),
-      DataCell(Text(row['email'])),
-      DataCell(Text(row['age'].toString())),
-      DataCell(Text(row['dob'])),
-      DataCell(Text(row['password'])),
-      DataCell(Text(row['address'])),
+      DataCell(Text((index + 1).toString())), // Sequential number
+      DataCell(Text(row['firstName'] ?? 'N/A')),
+      DataCell(Text(row['middleName'] ?? 'N/A')),
+      DataCell(Text(row['lastName'] ?? 'N/A')),
+      DataCell(Text(row['mobNo'] ?? 'N/A')),
+      DataCell(Text(row['email'] ?? 'N/A')),
       DataCell(Row(
         children: [
           IconButton(
-            icon: Icon(Icons.edit, color: Colors.blue),
-            onPressed: () => _edit(row),
+            icon: Icon(Icons.visibility, color: Colors.green),
+            onPressed: () {
+              _showAlertMessage(context, row);
+            },
           ),
           IconButton(
             icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _delete(row),
-          ),
-          IconButton(
-            icon: Icon(Icons.visibility, color: Colors.green),
-            onPressed: () => _view(row),
+            onPressed: () => _delete(row, context),
           ),
         ],
       )),
     ]);
   }
 
-  void _edit(Map<String, dynamic> row) {
-    // Handle edit action
-    print('Edit ${row['name']}');
-    // Implement your edit logic here
+  void _showAlertMessage(BuildContext context, Map<String, dynamic> row) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('User Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('First Name: ${row['firstName']}'),
+              Text('Middle Name: ${row['middleName']}'),
+              Text('Last Name: ${row['lastName']}'),
+              Text('Title: ${row['title']}'),
+              Text('Email: ${row['email']}'),
+              Text('Mobile No: ${row['mobNo']}'),
+              Text('Date of Birth: ${row['dob']}'),
+              Text('Age: ${row['age']}'),
+              Text('Address: ${row['address']}'),
+              Text('Password: ${row['password']}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  void _delete(Map<String, dynamic> row) {
-    // Handle delete action
-    print('Delete ${row['name']}');
-    // Implement your delete logic here
-    FirebaseFirestore.instance.collection('job_seekers').doc(row['id']).delete();
-    fetchData();  // Refresh the data after deletion
-  }
+  void _delete(Map<String, dynamic> row, BuildContext context) async {
+    bool confirmed = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete this job provider?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(false); // Return false when Cancel is pressed
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () {
+                Navigator.of(context).pop(true); // Return true when Delete is pressed
+              },
+            ),
+          ],
+        );
+      },
+    );
 
-  void _view(Map<String, dynamic> row) {
-    // Handle view action
-    print('View ${row['name']}');
-    // Implement your view logic here
+    if (confirmed) {
+      await FirebaseFirestore.instance
+          .collection('job_providers')
+          .doc(row['id'])
+          .delete();
+      fetchData(); // Refresh the data after deletion
+    }
   }
 
   @override

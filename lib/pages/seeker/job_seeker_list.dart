@@ -26,8 +26,14 @@ class JobSeekerList extends StatefulWidget {
 }
 
 class _JobSeekerListState extends State<JobSeekerList> {
-  final MyData _myData = MyData();
+  late MyData _myData;
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _myData = MyData(context); // Pass the context here
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,19 +68,17 @@ class _JobSeekerListState extends State<JobSeekerList> {
           source: _myData,
           columns: const [
             DataColumn(label: Text('No')),
-            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('First Name')),
+            DataColumn(label: Text('Middle Name')),
+            DataColumn(label: Text('Last Name')),
             DataColumn(label: Text('Mobile No')),
-            DataColumn(label: Text('Gender')),
             DataColumn(label: Text('Email')),
-            DataColumn(label: Text('Age'), numeric: true),
-            DataColumn(label: Text('DOB')),
-            DataColumn(label: Text('Password')),
-            DataColumn(label: Text('Address')),
-            DataColumn(label: Text('Actions')),  // Add Actions Column
+            DataColumn(label: Text('Gender')),
+            DataColumn(label: Text('Actions')), // Add Actions Column
           ],
-          columnSpacing: 12,
-          horizontalMargin: 12,
-          rowsPerPage: 10,
+          columnSpacing: 5,
+          horizontalMargin: 5,
+          rowsPerPage: 5, // Test with a lower number
           availableRowsPerPage: const [5, 10, 20],
           onRowsPerPageChanged: (rowsPerPage) {
             setState(() {
@@ -91,31 +95,38 @@ class _JobSeekerListState extends State<JobSeekerList> {
 class MyData extends DataTableSource {
   List<Map<String, dynamic>> data = [];
   List<Map<String, dynamic>> filteredData = [];
+  final BuildContext context;
 
-  MyData() {
+  MyData(this.context) {
     fetchData();
   }
 
   Future<void> fetchData() async {
-    QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('job_seekers').get();
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('job_seekers').get();
+      data = snapshot.docs.map((doc) {
+        print('Document Data: ${doc.data()}'); // Debug print
+        return {
+          'firstName': doc['firstName'] ?? '',
+          'middleName': doc['middleName'] ?? '',
+          'lastName': doc['lastName'] ?? '',
+          'mobNo': doc['mobNo'] ?? '',
+          'email': doc['email'] ?? '',
+          'gender': doc['gender'] ?? '',
+          'id': doc.id,
+          'education': doc['education'] ?? [],
+          'skills': doc['skills'] ?? [],
+          'experience': doc['experience'] ?? [],
+          'documents': doc['documents'] ?? [],
+        };
+      }).toList();
 
-    data = snapshot.docs.map((doc) {
-      return {
-        'name': doc['name'] ?? '',
-        'mobNo': doc['mobNo'] ?? '',
-        'gender': doc['gender'] ?? '',
-        'email': doc['email'] ?? '',
-        'age': doc['age'] ?? '',
-        'dob': doc['dob'] ?? '',
-        'password': doc['password'] ?? '',
-        'address': doc['address'] ?? '',
-        'id': doc.id,  // Save document ID for reference
-      };
-    }).toList();
-
-    filteredData = List.from(data);
-    notifyListeners();
+      filteredData = List.from(data);
+      print('Fetched Data: $data'); // Debug print
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching data: $e');
+    }
   }
 
   void filterData(String query) {
@@ -123,63 +134,189 @@ class MyData extends DataTableSource {
       filteredData = List.from(data);
     } else {
       filteredData = data
-          .where((row) => row.values
-          .any((value) => value.toString().contains(query)))
+          .where((row) => row.values.any((value) => value.toString().contains(query)))
           .toList();
     }
+    print('Filtered data: $filteredData'); // Debug print
     notifyListeners();
   }
 
-  @override
-  DataRow? getRow(int index) {
-    final row = filteredData[index];
-    return DataRow(cells: [
-      DataCell(Text((index + 1).toString())),  // Sequential number
-      DataCell(Text(row['name'])),
-      DataCell(Text(row['mobNo'])),
-      DataCell(Text(row['gender'])),
-      DataCell(Text(row['email'])),
-      DataCell(Text(row['age'].toString())),
-      DataCell(Text(row['dob'])),
-      DataCell(Text(row['password'])),
-      DataCell(Text(row['address'])),
-      DataCell(Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.edit, color: Colors.blue),
-            onPressed: () => _edit(row),
+  void _confirmDelete(Map<String, dynamic> row) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete this job seeker?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
           ),
-          IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _delete(row),
-          ),
-          IconButton(
-            icon: Icon(Icons.visibility, color: Colors.green),
-            onPressed: () => _view(row),
+          TextButton(
+            onPressed: () {
+              _delete(row);
+              Navigator.of(context).pop();
+            },
+            child: Text('Delete'),
           ),
         ],
-      )),
-    ]);
-  }
-
-  void _edit(Map<String, dynamic> row) {
-    // Handle edit action
-    print('Edit ${row['name']}');
-    // Implement your edit logic here
+      ),
+    );
   }
 
   void _delete(Map<String, dynamic> row) {
-    // Handle delete action
-    print('Delete ${row['name']}');
-    // Implement your delete logic here
-    FirebaseFirestore.instance.collection('job_seekers').doc(row['id']).delete();
-    fetchData();  // Refresh the data after deletion
+    FirebaseFirestore.instance.collection('job_seekers').doc(row['id']).delete().then((_) {
+      fetchData(); // Refresh the data after deletion
+    });
   }
 
   void _view(Map<String, dynamic> row) {
-    // Handle view action
-    print('View ${row['name']}');
-    // Implement your view logic here
+    final educationData = row['education'] as List<dynamic>? ?? [];
+    final skillsData = row['skills'] as List<dynamic>? ?? [];
+    final documentsData = row['documents'] as List<dynamic>? ?? [];
+
+    // Find the latest document based on a 'date' field (e.g., 'createdAt')
+    final latestDocument = documentsData.isNotEmpty
+        ? documentsData.reduce((a, b) {
+      final dateA = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(1970);
+      final dateB = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(1970);
+      return dateA.isAfter(dateB) ? a : b;
+    })
+        : null;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Job Seeker Details'),
+        content: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Personal Information:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('First Name: ${row['firstName'] ?? 'N/A'}'),
+                Text('Middle Name: ${row['middleName'] ?? 'N/A'}'),
+                Text('Last Name: ${row['lastName'] ?? 'N/A'}'),
+                Text('Email: ${row['email'] ?? 'N/A'}'),
+                Text('Mobile No: ${row['mobNo'] ?? 'N/A'}'),
+                Text('Gender: ${row['gender'] ?? 'N/A'}'),
+                SizedBox(height: 10),
+
+                // Education Section as DataTable
+                Text('Education:', style: TextStyle(fontWeight: FontWeight.bold)),
+                educationData.isNotEmpty
+                    ? DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Degree')),
+                    DataColumn(label: Text('Name')),
+                    DataColumn(label: Text('Level of Education')),
+                    DataColumn(label: Text('Start Date')),
+                    DataColumn(label: Text('End Date')),
+                    DataColumn(label: Text('Status')),
+                  ],
+                  rows: educationData.map<DataRow>((edu) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(edu['degree'] ?? 'N/A')),
+                        DataCell(Text(edu['name'] ?? 'N/A')),
+                        DataCell(Text(edu['level_of_education'] ?? 'N/A')),
+                        DataCell(Text(edu['start_date'] ?? 'N/A')),
+                        DataCell(Text(edu['end_date'] ?? 'N/A')),
+                        DataCell(Text(edu['status'] ?? 'N/A')),
+                      ],
+                    );
+                  }).toList(),
+                )
+                    : Text('No education data available'),
+                SizedBox(height: 10),
+
+                // Skills Section as DataTable
+                Text('Skills:', style: TextStyle(fontWeight: FontWeight.bold)),
+                skillsData.isNotEmpty
+                    ? DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Level')),
+                    DataColumn(label: Text('Title')),
+                  ],
+                  rows: skillsData.map<DataRow>((skill) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(skill['level'] ?? 'N/A')),
+                        DataCell(Text(skill['title'] ?? 'N/A')),
+                      ],
+                    );
+                  }).toList(),
+                )
+                    : Text('No skills data available'),
+                SizedBox(height: 10),
+
+                // Documents Section as DataTable with only the latest document
+                Text('Documents:', style: TextStyle(fontWeight: FontWeight.bold)),
+                latestDocument != null
+                    ? DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Document Type')),
+                    DataColumn(label: Text('Document URL')),
+                  ],
+                  rows: [
+                    DataRow(
+                      cells: [
+                        DataCell(Text(latestDocument['fileType'] ?? 'N/A')),
+                        DataCell(Text(latestDocument['filePath'] ?? 'N/A')),
+                      ],
+                    ),
+                  ],
+                )
+                    : Text('No documents available'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+
+  @override
+  DataRow getRow(int index) {
+    final row = filteredData[index];
+    return DataRow(
+      cells: [
+        DataCell(Text('${index + 1}')),
+        DataCell(Text(row['firstName'] ?? 'N/A')),
+        DataCell(Text(row['middleName'] ?? 'N/A')),
+        DataCell(Text(row['lastName'] ?? 'N/A')),
+        DataCell(Text(row['mobNo'] ?? 'N/A')),
+        DataCell(Text(row['email'] ?? 'N/A')),
+        DataCell(Text(row['gender'] ?? 'N/A')),
+        DataCell(
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.visibility),
+                onPressed: () => _view(row),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () => _confirmDelete(row),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -190,4 +327,9 @@ class MyData extends DataTableSource {
 
   @override
   int get selectedRowCount => 0;
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+  }
 }

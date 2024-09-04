@@ -13,19 +13,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: JobSeekerList(),
+      home: StudentList(),
     );
   }
 }
 
-class JobSeekerList extends StatefulWidget {
-  const JobSeekerList({super.key});
+class StudentList extends StatefulWidget {
+  const StudentList({super.key});
 
   @override
-  _JobSeekerListState createState() => _JobSeekerListState();
+  _StudentListState createState() => _StudentListState();
 }
 
-class _JobSeekerListState extends State<JobSeekerList> {
+class _StudentListState extends State<StudentList> {
   final MyData _myData = MyData();
   final TextEditingController _controller = TextEditingController();
 
@@ -33,7 +33,7 @@ class _JobSeekerListState extends State<JobSeekerList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Job Seeker List'),
+        title: const Text('Students List'),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -62,15 +62,15 @@ class _JobSeekerListState extends State<JobSeekerList> {
           source: _myData,
           columns: const [
             DataColumn(label: Text('No')),
-            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('First Name')),
+            DataColumn(label: Text('Middle Name')),
+            DataColumn(label: Text('Last Name')),
+            DataColumn(label: Text('Email')),
             DataColumn(label: Text('Mobile No')),
             DataColumn(label: Text('Gender')),
-            DataColumn(label: Text('Email')),
             DataColumn(label: Text('Age'), numeric: true),
-            DataColumn(label: Text('DOB')),
-            DataColumn(label: Text('Password')),
             DataColumn(label: Text('Address')),
-            DataColumn(label: Text('Actions')),  // Add Actions Column
+            DataColumn(label: Text('Actions')),
           ],
           columnSpacing: 12,
           horizontalMargin: 12,
@@ -98,19 +98,19 @@ class MyData extends DataTableSource {
 
   Future<void> fetchData() async {
     QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('job_seekers').get();
+    await FirebaseFirestore.instance.collection('students').get();
 
     data = snapshot.docs.map((doc) {
       return {
-        'name': doc['name'] ?? '',
+        'firstName': doc['firstName'] ?? '',
+        'middleName': doc['middleName'] ?? '',
+        'lastName': doc['lastName'] ?? '',
+        'email': doc['email'] ?? '',
         'mobNo': doc['mobNo'] ?? '',
         'gender': doc['gender'] ?? '',
-        'email': doc['email'] ?? '',
         'age': doc['age'] ?? '',
-        'dob': doc['dob'] ?? '',
-        'password': doc['password'] ?? '',
         'address': doc['address'] ?? '',
-        'id': doc.id,  // Save document ID for reference
+        'id': doc.id, // Save document ID for reference
       };
     }).toList();
 
@@ -134,52 +134,38 @@ class MyData extends DataTableSource {
   DataRow? getRow(int index) {
     final row = filteredData[index];
     return DataRow(cells: [
-      DataCell(Text((index + 1).toString())),  // Sequential number
-      DataCell(Text(row['name'])),
+      DataCell(Text((index + 1).toString())), // Sequential number
+      DataCell(Text(row['firstName'])),
+      DataCell(Text(row['middleName'])),
+      DataCell(Text(row['lastName'])),
+      DataCell(Text(row['email'])),
       DataCell(Text(row['mobNo'])),
       DataCell(Text(row['gender'])),
-      DataCell(Text(row['email'])),
       DataCell(Text(row['age'].toString())),
-      DataCell(Text(row['dob'])),
-      DataCell(Text(row['password'])),
       DataCell(Text(row['address'])),
       DataCell(Row(
         children: [
           IconButton(
             icon: Icon(Icons.edit, color: Colors.blue),
-            onPressed: () => _edit(row),
+            onPressed: () => {
+              // _edit(row)
+            },
           ),
           IconButton(
             icon: Icon(Icons.delete, color: Colors.red),
             onPressed: () => _delete(row),
-          ),
-          IconButton(
-            icon: Icon(Icons.visibility, color: Colors.green),
-            onPressed: () => _view(row),
           ),
         ],
       )),
     ]);
   }
 
-  void _edit(Map<String, dynamic> row) {
-    // Handle edit action
-    print('Edit ${row['name']}');
-    // Implement your edit logic here
-  }
-
-  void _delete(Map<String, dynamic> row) {
+  void _delete(Map<String, dynamic> row) async {
     // Handle delete action
-    print('Delete ${row['name']}');
+    print('Delete ${row['firstName']} ${row['lastName']}');
     // Implement your delete logic here
-    FirebaseFirestore.instance.collection('job_seekers').doc(row['id']).delete();
-    fetchData();  // Refresh the data after deletion
-  }
-
-  void _view(Map<String, dynamic> row) {
-    // Handle view action
-    print('View ${row['name']}');
-    // Implement your view logic here
+    await FirebaseFirestore.instance.collection('students').doc(row['id']).delete();
+    fetchData(); // Refresh the data after deletion
   }
 
   @override
@@ -191,3 +177,8 @@ class MyData extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
+
+
+
+
+

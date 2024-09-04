@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutteradmin/pages/provider/add_job_Provider.dart';
+import 'package:flutteradmin/pages/provider/job_Provider_list.dart';
+import 'package:flutteradmin/pages/provider/test.dart';
+import 'package:flutteradmin/pages/seeker/add_job_seeker.dart';
+import 'package:flutteradmin/pages/seeker/add_new_job.dart';
+import 'package:flutteradmin/pages/seeker/job_seeker_list.dart';
+import 'package:flutteradmin/pages/seeker/jobs.dart';
+import 'package:flutteradmin/pages/student/add_student.dart';
+import 'package:flutteradmin/pages/student/students_list.dart';
+import 'package:flutteradmin/pages/website_layout/feature_job.dart';
+import 'package:flutteradmin/pages/StatusCheckPage.dart';
+import 'package:flutteradmin/pages/ProviderSearchPage.dart';
+import 'package:flutteradmin/pages/Job_student_search.dart';
 import 'Companies.dart';
 import 'DB_config_pages/logout.dart';
-import 'Student list.dart';
+import 'Help_Support.dart';
 import 'UnderWorking.dart';
-import 'add_new_job.dart';
 import 'candidate.dart';
 import 'contactpage.dart';
+import 'dropdowns/indexdropdown.dart';
 import 'home.dart';
-import 'jobs.dart';
-import 'panelists.dart';
 import 'profile-Setting.dart';
 import 'profile.dart';
 
@@ -21,33 +32,51 @@ class IndexPage extends StatefulWidget {
 }
 
 class _IndexPageState extends State<IndexPage> {
-  bool _isDrawerOpen = true;
+  bool _isDrawerOpen = false; // Set the drawer to closed by default
   Widget _currentPage = const HomePage();
+  int _selectedIndex = 0;
 
-  Future<void> _toggleDrawer() async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isDrawerOpen = !_isMobileView(); // Auto open drawer for desktop/laptop
+      setState(() {});
+    });
+  }
+
+  void _toggleDrawer() {
     setState(() {
       _isDrawerOpen = !_isDrawerOpen;
     });
   }
 
-  void _updatePage(Widget page, {Map<String, dynamic>? userData}) {
+  void _updatePage(int index, Widget page, {Map<String, dynamic>? userData}) {
     setState(() {
+      _selectedIndex = index;
       if (page is ProfilePage && userData != null) {
         _currentPage = ProfilePage(userData: userData);
       } else {
         _currentPage = page;
       }
+      if (_isMobileView()) {
+        _isDrawerOpen = false; // Close the drawer after selecting a page on mobile
+      }
     });
+  }
+
+  bool _isMobileView() {
+    return MediaQuery.of(context).size.width < 768; // Adjust the width threshold as needed
   }
 
   @override
   Widget build(BuildContext context) {
-    final String userName = widget.userData['name'] ?? 'User'; // Default to 'User' if name is not available
+    final String userName = widget.userData['name'] ?? 'User';
 
     return Scaffold(
       appBar: AppBar(
         title: RichText(
-          text: const TextSpan(
+          text: TextSpan(
             children: [
               TextSpan(
                 text: 'EDU',
@@ -74,111 +103,124 @@ class _IndexPageState extends State<IndexPage> {
           color: Colors.white,
           onPressed: _toggleDrawer,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.light_mode_outlined),
-            color: Colors.white,
-            onPressed: () {
-              // Handle theme toggle
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            color: Colors.white,
-            onPressed: () {
-              // Handle notifications
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.mail_outline_outlined),
-            color: Colors.white,
-            onPressed: () {
-              // Handle mail options
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.verified_user_outlined),
-            color: Colors.green,
-            onPressed: () {
-              // Handle user verification
-            },
-          ),
-          Center(
-            child: Container(
-              color: Colors.orange,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8, right: 15),
-                child: Row(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: CircleAvatar(
-                        radius: 20, // Set the size of the avatar
-                        backgroundImage: AssetImage('assets/images/new1.JPG'),
-                        backgroundColor: Colors.transparent,
-                      ),
-                    ),
-                    Text(
-                      userName, // Display dynamic user name
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 18,
-                      ),
-                    ),
-                    PopupMenuButton<int>(
-                      icon: const Icon(
-                        Icons.keyboard_arrow_down_outlined,
-                        color: Colors.white70,
-                      ),
-                      onSelected: (value) {
-                        switch (value) {
-                          case 1:
-                            _updatePage(ProfilePage(userData: widget.userData)); // Pass userData here
-                            break;
-                          case 2:
-                            _updatePage(ProfileSetting());
-                            break;
-                          case 3:
-                            setState(() {
-                              logout(context);
-                            });
-                            break;
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem(
-                          value: 1,
-                          child: Text("Profile"),
-                        ),
-                        const PopupMenuItem(
-                          value: 2,
-                          child: Text("Settings"),
-                        ),
-                        const PopupMenuItem(
-                          value: 3,
-                          child: Text("Logout"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        actions: _isMobileView()
+            ? [_buildUserProfileDropdown(userName)] // Show dropdown only on mobile
+            : _buildAppBarActions(userName), // Show full actions on larger screens
       ),
       body: Row(
         children: [
-          CustomDrawer(
-            isOpen: _isDrawerOpen,
-            toggleDrawer: _toggleDrawer,
-            onPageSelected: _updatePage,
-            userName: userName, // Pass the dynamic user name to the drawer
-          ),
+          if (!_isMobileView() || _isDrawerOpen)
+            CustomDrawer(
+              isOpen: _isDrawerOpen,
+              toggleDrawer: _toggleDrawer,
+              onPageSelected: (index, page) => _updatePage(index, page, userData: widget.userData),
+              selectedIndex: _selectedIndex,
+              userName: userName,
+            ),
           Expanded(
             child: _currentPage,
           ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildAppBarActions(String userName) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.light_mode_outlined),
+        color: Colors.white,
+        onPressed: () {
+          // Handle theme toggle
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.notifications_none),
+        color: Colors.white,
+        onPressed: () {
+          // Handle notifications
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.mail_outline_outlined),
+        color: Colors.white,
+        onPressed: () {
+          // Handle mail options
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.verified_user_outlined),
+        color: Colors.green,
+        onPressed: () {
+          // Handle user verification
+        },
+      ),
+      _buildUserProfileDropdown(userName),
+    ];
+  }
+
+  Widget _buildUserProfileDropdown(String userName) {
+    return Center(
+      child: Container(
+      // color: Colors.orange,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8, right: 15),
+          child: Row(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundImage: AssetImage('assets/images/new1.JPG'),
+                  backgroundColor: Colors.transparent,
+                ),
+              ),
+              if (!_isMobileView())
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                  ),
+                ),
+              PopupMenuButton<int>(
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_outlined,
+                  color: Colors.white70,
+                ),
+                onSelected: (value) {
+                  switch (value) {
+                    case 1:
+                      _updatePage(_selectedIndex, ProfilePage(userData: widget.userData));
+                      break;
+                    case 2:
+                      _updatePage(_selectedIndex, ProfileSetting());
+                      break;
+                    case 3:
+                      setState(() {
+                        logout(context);
+                      });
+                      break;
+                  }
+                },
+                itemBuilder: (BuildContext context) => [
+                  const PopupMenuItem(
+                    value: 1,
+                    child: Text("Profile"),
+                  ),
+                  const PopupMenuItem(
+                    value: 2,
+                    child: Text("Settings"),
+                  ),
+                  const PopupMenuItem(
+                    value: 3,
+                    child: Text("Logout"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -187,35 +229,37 @@ class _IndexPageState extends State<IndexPage> {
 class CustomDrawer extends StatelessWidget {
   final bool isOpen;
   final VoidCallback toggleDrawer;
-  final void Function(Widget) onPageSelected; // Callback for page selection
-  final String userName; // Add a field for user name
+  final void Function(int, Widget) onPageSelected;
+  final int selectedIndex;
+  final String userName;
 
   const CustomDrawer({
     super.key,
     required this.isOpen,
     required this.toggleDrawer,
-    required this.onPageSelected, // Initialize the callback
-    required this.userName, // Initialize the user name
+    required this.onPageSelected,
+    required this.selectedIndex,
+    required this.userName,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 768;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: isOpen ? 225 : 80, // Expanded and collapsed widths
+      width: isOpen ? (isMobile ? MediaQuery.of(context).size.width : 225) : 0,
       color: const Color(0xFF263238),
       child: Column(
         children: <Widget>[
-          SizedBox(
-            height: 100,
-            // Set the height of the DrawerHeader
-            child: DrawerHeader(
+          if (isOpen)
+            DrawerHeader(
               child: Row(
                 children: [
                   const Padding(
                     padding: EdgeInsets.all(8.0),
                     child: CircleAvatar(
-                      radius: 30, // Set the size of the avatar
+                      radius: 30,
                       backgroundImage: AssetImage('assets/images/new1.JPG'),
                       backgroundColor: Colors.transparent,
                     ),
@@ -226,19 +270,23 @@ class CustomDrawer extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          userName, // Display dynamic user name
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
+                        Center(
+                          child: Text(
+                            userName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                            ),
                           ),
                         ),
-                        const Text(
-                          'Online',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
+                        Center(
+                          child: const Text(
+                            'Online',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ),
                       ],
@@ -249,62 +297,143 @@ class CustomDrawer extends StatelessWidget {
               decoration: const BoxDecoration(
                 color: Color(0xFF263238),
               ),
-              margin: EdgeInsets.zero,
-              padding: EdgeInsets.zero,
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildListTile(0, Icons.dashboard, 'Dashboard', context, Colors.purple, const HomePage()),
+                  _buildJobsExpansionTile(context),
+                  _buildProviderExpansionTile(context),
+                  _buildStudentExpansionTile(context),
+                  _buildListTile(1, Icons.apps_outage_sharp, 'Job seeker Search', context, Colors.cyan,const StatusCheckView()),
+                  _buildListTile(2, Icons.apps_outage_sharp, 'Job Provider Search', context, Colors.cyan,const ProviderSearchView()),
+                  _buildListTile(3, Icons.apps_outage_sharp, 'JobJobSearchStudent', context, Colors.cyan,JobSearchStudentView()),
+                  _buildListTile(4, Icons.apps_outage_sharp, 'Companies', context, Colors.cyan, const CompaniePage()),
+                  _buildListTile(5, Icons.diamond_outlined, 'Candidates', context, Colors.purpleAccent, const Candidates()),
+                  _buildListTile(6, Icons.map_sharp, 'Hepls Queries', context, Colors.red, const HelpAndSupportPage()),
+                  _buildListTile(7, Icons.map_sharp, 'Drop Down Menus', context, Colors.red, const IndexdropdownPage()),
+                  _buildListTile(8, Icons.contact_mail_rounded, 'Add featured Jobs', context, Colors.blue, const FeatureJobPage()),
+                  _buildListTile(9, Icons.contact_mail_rounded, 'Contact', context, Colors.blue, const ContactPage()),
+                  _buildListTile(10, Icons.settings, 'Settings', context, Colors.green, const UnderWorking()),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 15),
-          _buildListTile(Icons.dashboard, 'Dashboard', context, Colors.purple,
-              const HomePage()),
-          _buildJobsExpansionTile(context),
-          _buildListTile(Icons.apps_outage_sharp, 'Companies', context, Colors.cyan,
-              const CompaniePage()),
-          _buildListTile(Icons.apps_outage_sharp, 'Students', context, Colors.cyan,
-              const StudentList()),
-          _buildListTile(Icons.diamond_outlined, 'Candidates', context, Colors.purpleAccent,
-              const Candidates()),
-          _buildListTile(Icons.map_sharp, 'Panelists', context, Colors.red,
-              const PanelistsPage()),
-          _buildListTile(Icons.contact_mail_rounded, 'Contact', context, Colors.blue,
-              const ContactPage()),
-          _buildListTile(Icons.settings, 'Settings', context, Colors.green,
-              const UnderWorking()),
         ],
       ),
     );
   }
 
-  Widget _buildListTile(IconData icon, String text, BuildContext context, Color color,
-      Widget page) {
+  Widget _buildListTile(int index, IconData icon, String text, BuildContext context, Color color, Widget page) {
+    final bool isSelected = index == selectedIndex;
     return ListTile(
       leading: Icon(
         icon,
         color: color,
       ),
-      title: isOpen ? Text(text, style: const TextStyle(color: Colors.white)) : null,
+      title: isOpen
+          ? Text(
+        text,
+        style: TextStyle(
+          color: isSelected ? Colors.orange : Colors.white,
+        ),
+      )
+          : null,
+      tileColor: isSelected ? Colors.orange.withOpacity(0.2) : Colors.transparent,
       onTap: () {
-        onPageSelected(page);
+        onPageSelected(index, page);
       },
     );
   }
-
+   //job Seeker
   Widget _buildJobsExpansionTile(BuildContext context) {
     return ExpansionTile(
-      leading: Icon(Icons.widgets_outlined, color: Colors.greenAccent),
+      leading: Icon(Icons.widgets_outlined, color: Colors.orange),
       title: isOpen
-          ? const Text('Jobs', style: TextStyle(color: Colors.white))
-          : const SizedBox.shrink(), // Use SizedBox.shrink() for a hidden title
+          ? const Text('Job Seekers', style: TextStyle(color: Colors.white))
+          : const SizedBox.shrink(),
       children: <Widget>[
-        ListTile(
-          title: const Text('Add New Job', style: TextStyle(color: Colors.white)),
-          onTap: () {
-            onPageSelected(AddNewJobPortal()); // Assuming JobsPage handles New Job
-          },
-        ),
         ListTile(
           title: const Text('All Jobs', style: TextStyle(color: Colors.white)),
           onTap: () {
-            onPageSelected(const JobsPage()); // Adjust if All Jobs has a different page
+            onPageSelected(2, const JobsPage());
+          },
+        ),
+        ListTile(
+          title: const Text('Add New Job', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, const AddNewJobPortal());
+          },
+        ),
+        ListTile(
+          title: const Text('All Job Seekers', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2,  JobSeekerList());
+          },
+        ),
+        ListTile(
+          title: const Text('Add Job Seeker', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2,AddNewJobSeeker());
+          },
+        ),
+        // ListTile(
+        //   title: const Text('Items', style: TextStyle(color: Colors.white)),
+        //   onTap: () {
+        //     onPageSelected(2,DropMenuIndexPage());
+        //   },
+        // ),
+      ],
+    );
+  }
+    // job Provider
+  Widget _buildProviderExpansionTile(BuildContext context) {
+    return ExpansionTile(
+      leading: Icon(Icons.groups_outlined, color: Colors.red),
+      title: isOpen
+          ? const Text('Job Providers', style: TextStyle(color: Colors.white))
+          : const SizedBox.shrink(),
+      children: <Widget>[
+        ListTile(
+          title: const Text('All Providers', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, JobProviderList());
+          },
+        ),
+        ListTile(
+          title: const Text('Add New Provider', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, AddJobProvider());
+          },
+        ),
+        ListTile(
+          title: const Text('Test File', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, TestPage());
+          },
+        ),
+      ],
+    );
+  }
+    // student
+  Widget _buildStudentExpansionTile(BuildContext context) {
+    return ExpansionTile(
+      leading: Icon(Icons.school_outlined, color: Colors.blue),
+      title: isOpen
+          ? const Text('Students', style: TextStyle(color: Colors.white))
+          : const SizedBox.shrink(),
+      children: <Widget>[
+        ListTile(
+          title: const Text('All Students', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, StudentList());
+          },
+        ),
+        ListTile(
+          title: const Text('Add Student', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            onPageSelected(2, AddNewStudent());
           },
         ),
       ],

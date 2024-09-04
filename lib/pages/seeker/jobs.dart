@@ -59,69 +59,76 @@ class _JobsPageState extends State<JobsPage> {
       appBar: AppBar(
         title: const Text('Jobs List'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: SizedBox(
-                width: 300,
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Search',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: _searchJobs,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _jobStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  final jobs = snapshot.data ?? [];
-                  _filteredJobs = jobs.where((job) {
-                    return job.values.any((value) =>
-                        value.toString().toLowerCase().contains(_searchQuery));
-                  }).toList();
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isMobile = constraints.maxWidth < 600;
 
-                  return PaginatedDataTable2(
-                    source: MyJobData(_filteredJobs, _firestore),
-                    columns: const [
-                      DataColumn(label: Text('Company Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Job Title', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Job Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Experience', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Job Position', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Job Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Posted At', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Qualification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Salary Range', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                      DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                    ],
-                    columnSpacing: 12,
-                    horizontalMargin: 12,
-                    rowsPerPage: 10,
-                    availableRowsPerPage: const [5, 10, 20],
-                    onRowsPerPageChanged: (rowsPerPage) {
-                      setState(() {});
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: SizedBox(
+                    width: isMobile ? double.infinity : 300,
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Search',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: _searchJobs,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _jobStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+                      final jobs = snapshot.data ?? [];
+                      _filteredJobs = jobs.where((job) {
+                        return job.values.any((value) =>
+                            value.toString().toLowerCase().contains(_searchQuery));
+                      }).toList();
+
+                      return SizedBox(
+                        width: isMobile ? 1000 : null, // Set width for mobile screens to force scrolling
+                        child: PaginatedDataTable2(
+                          columnSpacing: isMobile ? 8 : 12,
+                          horizontalMargin: isMobile ? 8 : 12,
+                          rowsPerPage: isMobile ? 5 : 10,
+                          availableRowsPerPage: isMobile ? [5, 10] : [5, 10, 20],
+                          minWidth: isMobile ? 1000 : null, // Set minimum width for mobile screens
+                          source: MyJobData(_filteredJobs, _firestore),
+                          columns: const [
+                            DataColumn(label: Text('Company Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Job Title', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Job Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Experience', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Job Position', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Job Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Posted At', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Qualification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Salary Range', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                          ],
+                          showCheckboxColumn: false,
+                        ),
+                      );
                     },
-                    showCheckboxColumn: false,
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
