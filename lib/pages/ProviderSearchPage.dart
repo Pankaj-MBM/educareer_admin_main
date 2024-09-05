@@ -1,110 +1,171 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:data_table_2/data_table_2.dart';
+import 'package:flutter/material.dart';
 
-class ProviderSearchView extends StatefulWidget {
-  const ProviderSearchView({Key? key}) : super(key: key);
+class ProviderJobSearchView extends StatefulWidget {
+  const ProviderJobSearchView({super.key});
 
   @override
-  _ProviderSearchViewState createState() => _ProviderSearchViewState();
+  _ProviderJobSearchViewState createState() => _ProviderJobSearchViewState();
 }
 
-class _ProviderSearchViewState extends State<ProviderSearchView> {
-  final CollectionReference jobRequests =
-  FirebaseFirestore.instance.collection('job_requests');
+class _ProviderJobSearchViewState extends State<ProviderJobSearchView> {
+  final Stream<QuerySnapshot> _requestsStream = FirebaseFirestore.instance
+      .collection('approve_job_seeker_request')
+      .snapshots();
 
-  void _approveJobRequest(DocumentSnapshot doc) async {
-    await jobRequests.doc(doc.id).update({'status': 'approved'});
+  Future<void> _approveRequest(String requestId) async {
+    try {
+      Map<String, dynamic> requestData = await _fetchRequestData(requestId);
+      await FirebaseFirestore.instance
+          .collection('approve_admin_provider_list')
+          .doc(requestId)
+          .set(requestData);
+      await FirebaseFirestore.instance
+          .collection('approve_job_seeker_request')
+          .doc(requestId)
+          .update({'status': 'approved'});
 
-    // Send job details to job seekers' history collection
-    await FirebaseFirestore.instance.collection('job_seekers_history').add({
-      'title': doc['title'],
-      'category': doc['category'],
-      'city': doc['city'],
-      'jobType': doc['jobType'],
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Job request approved and sent to job seekers.')),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Request approved successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to approve request: $e")),
+      );
+    }
   }
 
-  void _rejectJobRequest(DocumentSnapshot doc) async {
-    await jobRequests.doc(doc.id).update({'status': 'rejected'});
+  Future<void> _rejectRequest(String requestId) async {
+    try {
+      Map<String, dynamic> requestData = await _fetchRequestData(requestId);
+      await FirebaseFirestore.instance
+          .collection('rejected_job_seeker_requests')
+          .doc(requestId)
+          .set(requestData);
+      await FirebaseFirestore.instance
+          .collection('approve_job_seeker_request')
+          .doc(requestId)
+          .update({'status': 'rejected'});
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Job request rejected.')),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Request rejected successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to reject request: $e")),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchRequestData(String requestId) async {
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection('approve_job_seeker_request')
+        .doc(requestId)
+        .get();
+    return doc.data() as Map<String, dynamic>;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Admin Panel'),
-        ),
-        body: StreamBuilder<QuerySnapshot>(
-            stream: jobRequests
-                .where('status', whereIn: ['pending', 'approved']).snapshots(),
-            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
 
-              final docs = snapshot.data!.docs;
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _requestsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              return ListView.builder(
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final doc = docs[index];
-                  final Map<String, dynamic> searchDetails =
-                  doc.data()! as Map<String, dynamic>;
-                  final bool isApproved = searchDetails['status'] == 'approved';
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No requests to display.'));
+          }
 
-                  return Card(
-                    margin:
-                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Job Title: ${searchDetails['title'] ?? 'N/A'}',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Category: ${searchDetails['category'] ?? 'N/A'}'),
-                          Text('City: ${searchDetails['city'] ?? 'N/A'}'),
-                          Text('Job Type: ${searchDetails['jobType'] ?? 'N/A'}'),
-                          Text(
-                              'Submitted On: ${searchDetails['timestamp'] != null ? (searchDetails['timestamp'] as Timestamp).toDate().toString() : 'N/A'}'),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              isApproved
-                                  ? const Icon(Icons.check, color: Colors.green)
-                                  : ElevatedButton(
-                                onPressed: () => _approveJobRequest(doc),
-                                child: const Text('Approve'),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: () => _rejectJobRequest(doc),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                ),
-                                child: const Text('Reject'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+          final requests = snapshot.data!.docs;
+
+          return PaginatedDataTable2(
+
+            header: const Text('Job Requests'),
+            columns: const [
+              DataColumn(label: Text('Sr.No')),
+              DataColumn(label: Text('Job Title')),
+              DataColumn(label: Text('Category')),
+              DataColumn(label: Text('Location')),
+              DataColumn(label: Text('Status')),
+              DataColumn(label: Text('Actions')),
+            ],
+            source: JobRequestsDataSource(
+              requests,
+              onApprove: _approveRequest,
+              onReject: _rejectRequest,
             ),
-        );
-    }
+            columnSpacing: 20,
+            horizontalMargin: 10,
+            rowsPerPage: 5,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class JobRequestsDataSource extends DataTableSource {
+  final List<QueryDocumentSnapshot> requests;
+  final Function(String) onApprove;
+  final Function(String) onReject;
+
+  JobRequestsDataSource(this.requests,
+      {required this.onApprove, required this.onReject});
+
+  @override
+  DataRow getRow(int index) {
+    final request = requests[index];
+    final requestId = request.id;
+    final data = request.data() as Map<String, dynamic>;
+    final status = data['status'] ?? 'Pending';
+
+    return DataRow.byIndex(
+      index: index,
+      cells: [
+        DataCell(Text((index + 1).toString())),
+        DataCell(Text(data['job_title'] ?? 'No Title')),
+        DataCell(Text(data['category'] ?? 'N/A')),
+        DataCell(Text(
+            '${data['city'] ?? 'N/A'}, ${data['state'] ?? 'N/A'}, ${data['country'] ?? 'N/A'}')),
+        DataCell(Text(status)),
+        DataCell(
+          status == 'Pending'
+              ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: () => onApprove(requestId),
+              ),
+              SizedBox(
+                width: 20,
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => onReject(requestId),
+              ),
+            ],
+          )
+              : Icon(
+            status == 'approved' ? Icons.done : Icons.close,
+            color: status == 'approved' ? Colors.green : Colors.red,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  int get rowCount => requests.length;
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get selectedRowCount=>0;
 }

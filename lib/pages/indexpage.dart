@@ -8,6 +8,7 @@ import 'package:flutteradmin/pages/seeker/job_seeker_list.dart';
 import 'package:flutteradmin/pages/seeker/jobs.dart';
 import 'package:flutteradmin/pages/student/add_student.dart';
 import 'package:flutteradmin/pages/student/students_list.dart';
+import 'package:flutteradmin/pages/test.dart';
 import 'package:flutteradmin/pages/website_layout/feature_job.dart';
 import 'package:flutteradmin/pages/StatusCheckPage.dart';
 import 'package:flutteradmin/pages/ProviderSearchPage.dart';
@@ -15,6 +16,8 @@ import 'package:flutteradmin/pages/Job_student_search.dart';
 import 'Companies.dart';
 import 'DB_config_pages/logout.dart';
 import 'Help_Support.dart';
+import 'Reject_Queries.dart';
+import 'Student_Query_Manager.dart';
 import 'UnderWorking.dart';
 import 'candidate.dart';
 import 'contactpage.dart';
@@ -33,7 +36,7 @@ class IndexPage extends StatefulWidget {
 
 class _IndexPageState extends State<IndexPage> {
   bool _isDrawerOpen = false; // Set the drawer to closed by default
-  Widget _currentPage = const HomePage();
+  Widget _currentPage =  HomePage();
   int _selectedIndex = 0;
 
   @override
@@ -193,10 +196,11 @@ class _IndexPageState extends State<IndexPage> {
                     case 1:
                       _updatePage(_selectedIndex, ProfilePage(userData: widget.userData));
                       break;
+                    // case 2:
+                    //   _updatePage(_selectedIndex, ProfileSetting());
+                    //   break;
+
                     case 2:
-                      _updatePage(_selectedIndex, ProfileSetting());
-                      break;
-                    case 3:
                       setState(() {
                         logout(context);
                       });
@@ -208,12 +212,12 @@ class _IndexPageState extends State<IndexPage> {
                     value: 1,
                     child: Text("Profile"),
                   ),
+                  // const PopupMenuItem(
+                  //   value: 2,
+                  //   child: Text("Settings"),
+                  // ),
                   const PopupMenuItem(
                     value: 2,
-                    child: Text("Settings"),
-                  ),
-                  const PopupMenuItem(
-                    value: 3,
                     child: Text("Logout"),
                   ),
                 ],
@@ -302,20 +306,21 @@ class CustomDrawer extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildListTile(0, Icons.dashboard, 'Dashboard', context, Colors.purple, const HomePage()),
+                  _buildListTile(0, Icons.dashboard, 'Dashboard', context, Colors.purple,  HomePage()),
                   _buildJobsExpansionTile(context),
                   _buildProviderExpansionTile(context),
                   _buildStudentExpansionTile(context),
-                  _buildListTile(1, Icons.apps_outage_sharp, 'Job seeker Search', context, Colors.cyan,const StatusCheckView()),
-                  _buildListTile(2, Icons.apps_outage_sharp, 'Job Provider Search', context, Colors.cyan,const ProviderSearchView()),
-                  _buildListTile(3, Icons.apps_outage_sharp, 'JobJobSearchStudent', context, Colors.cyan,JobSearchStudentView()),
-                  _buildListTile(4, Icons.apps_outage_sharp, 'Companies', context, Colors.cyan, const CompaniePage()),
-                  _buildListTile(5, Icons.diamond_outlined, 'Candidates', context, Colors.purpleAccent, const Candidates()),
-                  _buildListTile(6, Icons.map_sharp, 'Hepls Queries', context, Colors.red, const HelpAndSupportPage()),
-                  _buildListTile(7, Icons.map_sharp, 'Drop Down Menus', context, Colors.red, const IndexdropdownPage()),
-                  _buildListTile(8, Icons.contact_mail_rounded, 'Add featured Jobs', context, Colors.blue, const FeatureJobPage()),
-                  _buildListTile(9, Icons.contact_mail_rounded, 'Contact', context, Colors.blue, const ContactPage()),
-                  _buildListTile(10, Icons.settings, 'Settings', context, Colors.green, const UnderWorking()),
+                  _buildListTile(1, Icons.supervised_user_circle, 'Job seeker Search', context, Colors.cyan,const SeekerJobSearchView()),
+                  _buildListTile(2, Icons.app_registration_sharp, 'Job Provider Search', context, Colors.green,const ProviderJobSearchView()),
+                   // _buildListTile(3, Icons.apps_outage_sharp, 'Test', context, Colors.cyan,LiveDataPage()),
+                  _buildListTile(4, Icons.apps_outage_sharp, 'StudentRequestManage', context, Colors.cyan,StudentRequestManage()),
+                  // _buildListTile(5, Icons.apps_outage_sharp, 'Companies', context, Colors.cyan, const CompaniePage()),
+                  // _buildListTile(6, Icons.diamond_outlined, 'Candidates', context, Colors.purpleAccent, const Candidates()),
+                  _buildListTile(7, Icons.map_sharp, 'Hepls Queries', context, Colors.red, const HelpAndSupportPage()),
+                  _buildListTile(8, Icons.water_drop, 'Drop Down Menus', context, Colors.yellow, const IndexdropdownPage()),
+                  _buildListTile(9, Icons.home_repair_service, 'Add featured Jobs', context, Colors.greenAccent, const FeatureJobPage()),
+                  _buildListTile(10, Icons.contact_mail_rounded, 'Contact', context, Colors.blue, const ContactPage()),
+                  // _buildListTile(11, Icons.settings, 'Settings', context, Colors.green, const UnderWorking()),
                 ],
               ),
             ),
@@ -407,12 +412,7 @@ class CustomDrawer extends StatelessWidget {
             onPageSelected(2, AddJobProvider());
           },
         ),
-        ListTile(
-          title: const Text('Test File', style: TextStyle(color: Colors.white)),
-          onTap: () {
-            onPageSelected(2, TestPage());
-          },
-        ),
+
       ],
     );
   }
