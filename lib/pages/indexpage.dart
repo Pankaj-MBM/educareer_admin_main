@@ -15,8 +15,10 @@ import 'package:flutteradmin/pages/ProviderSearchPage.dart';
 import 'package:flutteradmin/pages/Job_student_search.dart';
 import 'Companies.dart';
 import 'DB_config_pages/logout.dart';
+import 'Examcorner.dart';
 import 'Help_Support.dart';
 import 'Reject_Queries.dart';
+import 'ScholarshipPaage.dart';
 import 'Student_Query_Manager.dart';
 import 'UnderWorking.dart';
 import 'candidate.dart';
@@ -310,12 +312,12 @@ class CustomDrawer extends StatelessWidget {
                   _buildJobsExpansionTile(context),
                   _buildProviderExpansionTile(context),
                   _buildStudentExpansionTile(context),
-                  _buildListTile(1, Icons.supervised_user_circle, 'Job seeker Search', context, Colors.cyan,const SeekerJobSearchView()),
-                  _buildListTile(2, Icons.app_registration_sharp, 'Job Provider Search', context, Colors.green,const ProviderJobSearchView()),
+                  _buildListTile(1, Icons.supervised_user_circle, 'Job seeker Search', context, Colors.cyan,const ProviderJobSearchView()),
+                  _buildListTile(2, Icons.app_registration_sharp, 'Job Provider Search', context, Colors.green,const  SeekerJobSearchView()),
                    // _buildListTile(3, Icons.apps_outage_sharp, 'Test', context, Colors.cyan,LiveDataPage()),
                   _buildListTile(4, Icons.apps_outage_sharp, 'StudentRequestManage', context, Colors.cyan,StudentRequestManage()),
-                  // _buildListTile(5, Icons.apps_outage_sharp, 'Companies', context, Colors.cyan, const CompaniePage()),
-                  // _buildListTile(6, Icons.diamond_outlined, 'Candidates', context, Colors.purpleAccent, const Candidates()),
+                   _buildListTile(5, Icons.apps_outage_sharp, 'Student Exam Corner', context, Colors.cyan, const ExamcornerPage()),
+                   _buildListTile(6, Icons.diamond_outlined, 'Scholarship Corner', context, Colors.purpleAccent, const ScholarshipPage()),
                   _buildListTile(7, Icons.map_sharp, 'Hepls Queries', context, Colors.red, const HelpAndSupportPage()),
                   _buildListTile(8, Icons.water_drop, 'Drop Down Menus', context, Colors.yellow, const IndexdropdownPage()),
                   _buildListTile(9, Icons.home_repair_service, 'Add featured Jobs', context, Colors.greenAccent, const FeatureJobPage()),

@@ -96,7 +96,7 @@ class MyData extends DataTableSource {
           .get();
       final List<Map<String, dynamic>> fetchedData = snapshot.docs.map((doc) {
         return {
-          'id': doc.id, // Store document ID for later reference
+          'student_id': doc.id, // Store document ID as student_id
           ...doc.data() as Map<String, dynamic>,
         };
       }).toList();
@@ -138,12 +138,12 @@ class MyData extends DataTableSource {
         Row(
           children: [
             ElevatedButton(
-              onPressed: () => _approveRequest(row['id']),
+              onPressed: () => _approveRequest(row['student_id']),
               child: const Text('Approve'),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
-              onPressed: () => _showRejectConfirmationDialog(row['id']),
+              onPressed: () => _showRejectConfirmationDialog(row['student_id']),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
@@ -155,40 +155,59 @@ class MyData extends DataTableSource {
     ]);
   }
 
-  void _approveRequest(String requestId) {
-    showDialog(
-      context: _context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select User Type'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('Job Seeker'),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the current dialog
-                  _showJobSeekerList(requestId); // Open list dialog for Job Seekers
-                },
-              ),
-              ListTile(
-                title: const Text('Job Provider'),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the current dialog
-                  _showJobProviderList(requestId); // Open list dialog for Job Providers
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  void _approveRequest(String studentId) async {
+    try {
+      // Fetch the student request data from 'approved_student_job_requests'
+      final studentSnapshot = await FirebaseFirestore.instance
+          .collection('approved_student_job_requests')
+          .doc(studentId)
+          .get();
+
+      if (!studentSnapshot.exists) {
+        print('Student request not found');
+        return;
+      }
+
+      final studentData = studentSnapshot.data() as Map<String, dynamic>;
+
+      showDialog(
+        context: _context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Select User Type'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Job Seeker'),
+                  onTap: () {
+                    Navigator.of(context).pop(); // Close the current dialog
+                    _showJobSeekerList(studentId, studentData); // Pass student data
+                  },
+                ),
+                ListTile(
+                  title: const Text('Job Provider'),
+                  onTap: () {
+                    Navigator.of(context).pop(); // Close the current dialog
+                    _showJobProviderList(studentId, studentData); // Pass student data
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      print('Error fetching student data: $e');
+    }
   }
 
-  void _showJobSeekerList(String requestId) async {
+  void _showJobSeekerList(String studentId, Map<String, dynamic> studentData) async {
     try {
+      // Fetch job seeker requests
       final snapshot = await FirebaseFirestore.instance
           .collection('approve_job_seeker_request')
+          .where('status', isEqualTo: 'approved') // Filter by status 'approved'
           .get();
 
       final List<Map<String, dynamic>> jobSeekers = snapshot.docs.map((doc) {
@@ -258,13 +277,13 @@ class MyData extends DataTableSource {
                   if (selectedJobSeekers.isNotEmpty)
                     TextButton(
                       onPressed: () async {
-                        // Show confirmation dialog before sending copies
+                        // Show confirmation dialog before saving
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text('Confirm Selection'),
-                              content: const Text('Are you sure you want to send a copy of the selected job seekers to the Admin-approved-List?'),
+                              content: const Text('Are you sure you want to approve the selected job seekers?'),
                               actions: [
                                 TextButton(
                                   onPressed: () {
@@ -274,15 +293,27 @@ class MyData extends DataTableSource {
                                 ),
                                 TextButton(
                                   onPressed: () async {
-                                    // Copy selected job seekers to another collection
-                                    for (var jobSeeker in selectedJobSeekers) {
-                                      await FirebaseFirestore.instance
-                                          .collection('Admin-approved-List')
-                                          .add(jobSeeker);
-                                    }
+                                    try {
+                                      // Save selected job seekers to Admin-approved-List
+                                      for (var jobSeeker in selectedJobSeekers) {
+                                        await FirebaseFirestore.instance
+                                            .collection('Admin-approved-List')
+                                            .doc() // Use a new auto-generated document ID
+                                            .set({
+                                          'student_id': studentId,
+                                          'student_data': studentData, // Add student data
+                                          ...jobSeeker,
+                                        });
+                                      }
 
-                                    Navigator.of(context).pop(); // Close confirmation dialog
-                                    Navigator.of(_context).pop(); // Close the original dialog
+                                      Navigator.of(context).pop(); // Close confirmation dialog
+                                      Navigator.of(_context).pop(); // Close the original dialog
+                                      ScaffoldMessenger.of(_context).showSnackBar(
+                                        const SnackBar(content: Text('Approved successfully!')),
+                                      );
+                                    } catch (e) {
+                                      print('Error approving job seekers: $e');
+                                    }
                                   },
                                   child: const Text('Confirm'),
                                 ),
@@ -291,7 +322,7 @@ class MyData extends DataTableSource {
                           },
                         );
                       },
-                      child: const Text('Select'),
+                      child: const Text('Approve'),
                     ),
                 ],
               );
@@ -300,14 +331,16 @@ class MyData extends DataTableSource {
         },
       );
     } catch (e) {
-      print('Error fetching job seeker requests: $e');
+      print('Error fetching job seekers: $e');
     }
   }
 
-  void _showJobProviderList(String requestId) async {
+  void _showJobProviderList(String requestId, Map<String, dynamic> studentData) async {
     try {
+      // Fetch job provider requests
       final snapshot = await FirebaseFirestore.instance
           .collection('approved_provider_job_requests')
+          .where('status', isEqualTo: 'Approved') // Filter by status 'approved'
           .get();
 
       final List<Map<String, dynamic>> jobProviders = snapshot.docs.map((doc) {
@@ -331,12 +364,12 @@ class MyData extends DataTableSource {
                     : SingleChildScrollView(
                   child: DataTable(
                     columns: const [
-                      DataColumn(label: Text('Company Name')),
-                      DataColumn(label: Text('Location')),
-                      DataColumn(label: Text('Position')),
-                      DataColumn(label: Text('Specialization')),
-                      DataColumn(label: Text('Salary')),
-                      DataColumn(label: Text('Posted At')),
+                      DataColumn(label: Text('Title')),
+                      DataColumn(label: Text('Category')),
+                      DataColumn(label: Text('City')),
+                      DataColumn(label: Text('JobType')),
+                      DataColumn(label: Text('Status')),
+                    //  DataColumn(label: Text('Posted At')),
                     ],
                     rows: jobProviders.map((jobProvider) {
                       final isSelected = selectedJobProviders.contains(jobProvider);
@@ -352,12 +385,12 @@ class MyData extends DataTableSource {
                           });
                         },
                         cells: [
-                          DataCell(Text(jobProvider['company_name'] ?? 'N/A')),
-                          DataCell(Text(jobProvider['location'] ?? 'N/A')),
-                          DataCell(Text(jobProvider['position'] ?? 'N/A')),
-                          DataCell(Text(jobProvider['specialization'] ?? 'N/A')),
-                          DataCell(Text(jobProvider['salary'] ?? 'N/A')),
-                          DataCell(Text(jobProvider['posted_at']?.toDate().toString() ?? 'N/A')),
+                          DataCell(Text(jobProvider['title'] ?? 'N/A')),
+                          DataCell(Text(jobProvider['category'] ?? 'N/A')),
+                          DataCell(Text(jobProvider['city'] ?? 'N/A')),
+                          DataCell(Text(jobProvider['jobType'] ?? 'N/A')),
+                          DataCell(Text(jobProvider['status'] ?? 'N/A')),
+                        //  DataCell(Text(jobProvider['posted_at']?.toDate().toString() ?? 'N/A')),
                         ],
                       );
                     }).toList(),
@@ -373,20 +406,55 @@ class MyData extends DataTableSource {
                   if (selectedJobProviders.isNotEmpty)
                     TextButton(
                       onPressed: () async {
-                        // Move selected job providers to another collection
-                        for (var jobProvider in selectedJobProviders) {
-                          await FirebaseFirestore.instance
-                              .collection('Admin-approved-List')
-                              .add(jobProvider);
+                        // Show confirmation dialog before saving
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Confirm Selection'),
+                              content: const Text('Are you sure you want to approve the selected job providers?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(); // Close confirmation dialog
+                                  },
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      // Save selected job providers to Admin-approved-List
+                                      for (var jobProvider in selectedJobProviders) {
+                                        await FirebaseFirestore.instance
+                                            .collection('Admin-approved-List')
+                                            .add({
+                                          'student_id': requestId,
+                                          'student_data': studentData, // Add student data
+                                          ...jobProvider,
+                                        });
 
-                          // Optionally delete the document from the original collection
-                          await FirebaseFirestore.instance
-                              .collection('approved_provider_job_requests')
-                              .doc(jobProvider['id'])
-                              .delete();
-                        }
+                                        // Optionally delete the document from the original collection
+                                        await FirebaseFirestore.instance
+                                            .collection('approved_provider_job_requests')
+                                            .doc(jobProvider['id'])
+                                            .delete();
+                                      }
 
-                        Navigator.of(context).pop(); // Close the dialog
+                                      Navigator.of(context).pop(); // Close confirmation dialog
+                                      Navigator.of(_context).pop(); // Close the original dialog
+                                      ScaffoldMessenger.of(_context).showSnackBar(
+                                        const SnackBar(content: Text('Approved successfully!')),
+                                      );
+                                    } catch (e) {
+                                      print('Error approving job providers: $e');
+                                    }
+                                  },
+                                  child: const Text('Confirm'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       },
                       child: const Text('Select'),
                     ),
@@ -412,62 +480,62 @@ class MyData extends DataTableSource {
     Map<String, dynamic>? documentData = documentSnapshot.data() as Map<String, dynamic>?;
 
     showDialog(
-      context: _context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reject Request'),
-          content: const Text('Are you sure you want to reject this request?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  if (documentData != null) {
-                    // Move the document to the 'admin-reject-queries' collection
-                    await FirebaseFirestore.instance
-                        .collection('admin-reject-queries')
-                        .doc(requestId)
-                        .set(documentData);
+        context: _context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Reject Request'),
+            content: const Text('Are you sure you want to reject this request?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    if (documentData != null) {
+                      // Move the document to the 'admin-reject-queries' collection
+                      await FirebaseFirestore.instance
+                          .collection('admin-reject-queries')
+                          .doc(requestId)
+                          .set(documentData);
 
-                    // Remove the document from the 'approved_student_job_requests' collection
-                    await FirebaseFirestore.instance
-                        .collection('approved_student_job_requests')
-                        .doc(requestId)
-                        .delete();
+                      // Remove the document from the 'approved_student_job_requests' collection
+                      await FirebaseFirestore.instance
+                          .collection('approved_student_job_requests')
+                          .doc(requestId)
+                          .delete();
 
-                    // Show confirmation SnackBar
-                    ScaffoldMessenger.of(_context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Request rejected'),
-                        backgroundColor: Colors.green, // Green color for success
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                      // Show confirmation SnackBar
+                      ScaffoldMessenger.of(_context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Request rejected'),
+                          backgroundColor: Colors.green, // Green color for success
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    print('Error rejecting request: $e'); // Debugging line
                   }
-                } catch (e) {
-                  print('Error rejecting request: $e'); // Debugging line
-                }
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Reject'),
-            ),
-          ],
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: const Text('Reject'),
+              ),
+            ],
+          );
+          },
         );
-      },
-    );
-  }
+    }
 
   @override
   bool get isRowCountApproximate => false;
+
   @override
   int get rowCount => filteredData.length;
+
   @override
   int get selectedRowCount => 0;
-  @override
-  void selectAll(bool checked) {}
 }

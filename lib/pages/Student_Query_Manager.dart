@@ -22,11 +22,11 @@ class StudentRequestManage extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             JobSearchStudentView(),
-            JobApproveSeekerStudentView(),
-            RejectQueries(),
+            const JobApproveSeekerStudentView(),
+            const RejectQueries(),
           ],
         ),
       ),
